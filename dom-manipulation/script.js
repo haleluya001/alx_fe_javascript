@@ -1,4 +1,4 @@
-// Load quotes from localStorage or use defaults
+// Load quotes from localStorage or defaults
 let quotes = JSON.parse(localStorage.getItem("quotes")) || [
   { text: "The best way to predict the future is to create it.", category: "Motivation" },
   { text: "JavaScript is the language of the web.", category: "Programming" }
@@ -6,8 +6,9 @@ let quotes = JSON.parse(localStorage.getItem("quotes")) || [
 
 const quoteDisplay = document.getElementById("quoteDisplay");
 const newQuoteBtn = document.getElementById("newQuote");
+const categoryFilter = document.getElementById("categoryFilter");
 
-// Save quotes to localStorage
+// Save quotes
 function saveQuotes() {
   localStorage.setItem("quotes", JSON.stringify(quotes));
 }
@@ -21,9 +22,6 @@ function displayRandomQuote() {
     <p>"${quote.text}"</p>
     <small>Category: ${quote.category}</small>
   `;
-
-  // Store last viewed quote in sessionStorage
-  sessionStorage.setItem("lastQuote", JSON.stringify(quote));
 }
 
 // REQUIRED FUNCTION
@@ -54,64 +52,62 @@ function createAddQuoteForm() {
   document.body.appendChild(formDiv);
 }
 
-// REQUIRED LOGIC: update array + DOM + storage
+// POPULATE CATEGORY DROPDOWN
+function populateCategories() {
+  const categories = [...new Set(quotes.map(q => q.category))];
+
+  categoryFilter.innerHTML = `<option value="all">All Categories</option>`;
+
+  categories.forEach(category => {
+    const option = document.createElement("option");
+    option.value = category;
+    option.textContent = category;
+    categoryFilter.appendChild(option);
+  });
+
+  const savedFilter = localStorage.getItem("selectedCategory");
+  if (savedFilter) {
+    categoryFilter.value = savedFilter;
+  }
+}
+
+// FILTER QUOTES
+function filterQuotes() {
+  const selectedCategory = categoryFilter.value;
+  localStorage.setItem("selectedCategory", selectedCategory);
+
+  quoteDisplay.innerHTML = "";
+
+  const filteredQuotes =
+    selectedCategory === "all"
+      ? quotes
+      : quotes.filter(q => q.category === selectedCategory);
+
+  filteredQuotes.forEach(quote => {
+    const quoteElement = document.createElement("p");
+    quoteElement.textContent = `"${quote.text}" (${quote.category})`;
+    quoteDisplay.appendChild(quoteElement);
+  });
+}
+
+// ADD QUOTE + UPDATE STORAGE + DOM
 function addQuote() {
   const text = document.getElementById("newQuoteText").value.trim();
   const category = document.getElementById("newQuoteCategory").value.trim();
 
   if (!text || !category) return;
 
-  const newQuote = { text, category };
-  quotes.push(newQuote);
+  quotes.push({ text, category });
   saveQuotes();
 
-  const quoteElement = document.createElement("p");
-  quoteElement.textContent = `"${text}" (${category})`;
-  quoteDisplay.appendChild(quoteElement);
-
-  showRandomQuote();
+  populateCategories();
+  filterQuotes();
 }
 
-// EXPORT QUOTES AS JSON
-function exportQuotesToJson() {
-  const jsonData = JSON.stringify(quotes, null, 2);
-  const blob = new Blob([jsonData], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = "quotes.json";
-  link.click();
-
-  URL.revokeObjectURL(url);
-}
-
-// IMPORT QUOTES FROM JSON
-function importFromJsonFile(event) {
-  const fileReader = new FileReader();
-
-  fileReader.onload = function (event) {
-    const importedQuotes = JSON.parse(event.target.result);
-    quotes.push(...importedQuotes);
-    saveQuotes();
-    alert("Quotes imported successfully!");
-    showRandomQuote();
-  };
-
-  fileReader.readAsText(event.target.files[0]);
-}
-
-// Event listener
+// EVENTS
 newQuoteBtn.addEventListener("click", showRandomQuote);
 
-// Restore last viewed quote from sessionStorage
-const lastQuote = sessionStorage.getItem("lastQuote");
-if (lastQuote) {
-  const quote = JSON.parse(lastQuote);
-  quoteDisplay.innerHTML = `<p>"${quote.text}"</p><small>${quote.category}</small>`;
-} else {
-  showRandomQuote();
-}
-
-// Initial setup
+// INITIAL LOAD
 createAddQuoteForm();
+populateCategories();
+filterQuotes();
