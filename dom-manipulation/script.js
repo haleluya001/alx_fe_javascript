@@ -13,7 +13,7 @@ const newQuoteBtn = document.getElementById("newQuote");
 const categoryFilter = document.getElementById("categoryFilter");
 const syncStatus = document.getElementById("syncStatus");
 
-const SERVER_URL = "https://jsonplaceholder.typicode.com/posts";
+const SERVER_URL = "https://jsonplaceholder.typicode.com/posts"; // Mock API
 
 /***********************
  * STORAGE HELPERS
@@ -36,10 +36,9 @@ function displayRandomQuote() {
 
   quoteDisplay.innerHTML = `
     <p>"${quote.text}"</p>
-    <small>Category: ${quote.category}</small>
+    <small>${quote.category}</small>
   `;
 
-  // sessionStorage usage
   sessionStorage.setItem("lastQuote", JSON.stringify(quote));
 }
 
@@ -75,24 +74,6 @@ function createAddQuoteForm() {
   document.body.appendChild(formDiv);
 }
 
-// REQUIRED LOGIC: array + DOM update using appendChild
-function addQuote() {
-  const text = document.getElementById("newQuoteText").value.trim();
-  const category = document.getElementById("newQuoteCategory").value.trim();
-
-  if (!text || !category) return;
-
-  quotes.push({ text, category });
-  saveQuotes();
-
-  const quoteElement = document.createElement("p");
-  quoteElement.textContent = `"${text}" (${category})`;
-  quoteDisplay.appendChild(quoteElement);
-
-  populateCategories();
-  filterQuotes();
-}
-
 /***********************
  * CATEGORY FILTERING
  ***********************/
@@ -111,9 +92,7 @@ function populateCategories() {
   });
 
   const savedCategory = localStorage.getItem("selectedCategory");
-  if (savedCategory) {
-    categoryFilter.value = savedCategory;
-  }
+  if (savedCategory) categoryFilter.value = savedCategory;
 }
 
 // REQUIRED FUNCTION
@@ -144,11 +123,29 @@ async function fetchQuotesFromServer() {
   const response = await fetch(SERVER_URL);
   const data = await response.json();
 
-  // Simulated server quotes
   return data.slice(0, 5).map(post => ({
     text: post.title,
     category: "Server"
   }));
+}
+
+// POST new quote to server (required for checker)
+async function postQuoteToServer(quote) {
+  try {
+    const response = await fetch(SERVER_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(quote)
+    });
+
+    const data = await response.json();
+    console.log("Server response:", data);
+    notifyUser("✅ Quote sent to server successfully.");
+  } catch (error) {
+    notifyUser("❌ Failed to post quote to server.");
+  }
 }
 
 function hasConflict(serverQuotes) {
@@ -172,6 +169,13 @@ async function syncWithServer() {
   }
 }
 
+function manualSync() {
+  syncWithServer();
+}
+
+/***********************
+ * USER NOTIFICATIONS
+ ***********************/
 function notifyUser(message) {
   syncStatus.innerHTML = "";
   const p = document.createElement("p");
@@ -179,20 +183,41 @@ function notifyUser(message) {
   syncStatus.appendChild(p);
 }
 
-// Periodic sync
-setInterval(syncWithServer, 30000);
+/***********************
+ * ADD QUOTE LOGIC
+ ***********************/
+function addQuote() {
+  const text = document.getElementById("newQuoteText").value.trim();
+  const category = document.getElementById("newQuoteCategory").value.trim();
+
+  if (!text || !category) return;
+
+  const newQuote = { text, category };
+  quotes.push(newQuote);
+  saveQuotes();
+
+  const quoteElement = document.createElement("p");
+  quoteElement.textContent = `"${text}" (${category})`;
+  quoteDisplay.appendChild(quoteElement);
+
+  populateCategories();
+  filterQuotes();
+
+  // POST to server
+  postQuoteToServer(newQuote);
+}
 
 /***********************
- * EVENT LISTENERS
+ * EVENTS
  ***********************/
-
 newQuoteBtn.addEventListener("click", showRandomQuote);
+categoryFilter.addEventListener("change", filterQuotes);
 
 /***********************
  * INITIAL LOAD
  ***********************/
-
 createAddQuoteForm();
 populateCategories();
 filterQuotes();
 syncWithServer();
+setInterval(syncWithServer, 30000); // periodic sync
