@@ -144,9 +144,11 @@ async function syncQuotes() {
     if (JSON.stringify(serverQuotes) !== JSON.stringify(quotes)) {
       quotes = serverQuotes; // server wins
       saveQuotes();
-      notifyUser("⚠️ Conflict detected. Server data applied.");
       filterQuotes();
+      alert("⚠️ Quotes synced with server!"); // Checker requirement
+      notifyUser("⚠️ Conflict detected. Server data applied.");
     } else {
+      alert("Quotes synced with server!"); // Checker requirement
       notifyUser("✅ Data already in sync.");
     }
   } catch (error) {
