@@ -18,7 +18,6 @@ const SERVER_URL = "https://jsonplaceholder.typicode.com/posts"; // Mock API
 /***********************
  * STORAGE HELPERS
  ***********************/
-
 function saveQuotes() {
   localStorage.setItem("quotes", JSON.stringify(quotes));
 }
@@ -26,8 +25,6 @@ function saveQuotes() {
 /***********************
  * QUOTE DISPLAY LOGIC
  ***********************/
-
-// REQUIRED FUNCTION
 function displayRandomQuote() {
   if (quotes.length === 0) return;
 
@@ -42,7 +39,6 @@ function displayRandomQuote() {
   sessionStorage.setItem("lastQuote", JSON.stringify(quote));
 }
 
-// REQUIRED FUNCTION
 function showRandomQuote() {
   displayRandomQuote();
 }
@@ -50,8 +46,6 @@ function showRandomQuote() {
 /***********************
  * ADD QUOTE FORM
  ***********************/
-
-// REQUIRED FUNCTION
 function createAddQuoteForm() {
   const formDiv = document.createElement("div");
 
@@ -77,8 +71,6 @@ function createAddQuoteForm() {
 /***********************
  * CATEGORY FILTERING
  ***********************/
-
-// REQUIRED FUNCTION
 function populateCategories() {
   const categories = [...new Set(quotes.map(q => q.category))];
 
@@ -95,7 +87,6 @@ function populateCategories() {
   if (savedCategory) categoryFilter.value = savedCategory;
 }
 
-// REQUIRED FUNCTION
 function filterQuotes() {
   const selectedCategory = categoryFilter.value;
   localStorage.setItem("selectedCategory", selectedCategory);
@@ -117,8 +108,6 @@ function filterQuotes() {
 /***********************
  * SERVER SYNC & CONFLICTS
  ***********************/
-
-// REQUIRED FUNCTION NAME
 async function fetchQuotesFromServer() {
   const response = await fetch(SERVER_URL);
   const data = await response.json();
@@ -129,7 +118,6 @@ async function fetchQuotesFromServer() {
   }));
 }
 
-// POST new quote to server (required for checker)
 async function postQuoteToServer(quote) {
   try {
     const response = await fetch(SERVER_URL, {
@@ -148,15 +136,12 @@ async function postQuoteToServer(quote) {
   }
 }
 
-function hasConflict(serverQuotes) {
-  return JSON.stringify(serverQuotes) !== JSON.stringify(quotes);
-}
-
-async function syncWithServer() {
+// REQUIRED FUNCTION NAME
+async function syncQuotes() {
   try {
     const serverQuotes = await fetchQuotesFromServer();
 
-    if (hasConflict(serverQuotes)) {
+    if (JSON.stringify(serverQuotes) !== JSON.stringify(quotes)) {
       quotes = serverQuotes; // server wins
       saveQuotes();
       notifyUser("⚠️ Conflict detected. Server data applied.");
@@ -170,12 +155,9 @@ async function syncWithServer() {
 }
 
 function manualSync() {
-  syncWithServer();
+  syncQuotes();
 }
 
-/***********************
- * USER NOTIFICATIONS
- ***********************/
 function notifyUser(message) {
   syncStatus.innerHTML = "";
   const p = document.createElement("p");
@@ -203,7 +185,6 @@ function addQuote() {
   populateCategories();
   filterQuotes();
 
-  // POST to server
   postQuoteToServer(newQuote);
 }
 
@@ -219,5 +200,5 @@ categoryFilter.addEventListener("change", filterQuotes);
 createAddQuoteForm();
 populateCategories();
 filterQuotes();
-syncWithServer();
-setInterval(syncWithServer, 30000); // periodic sync
+syncQuotes();
+setInterval(syncQuotes, 30000);
